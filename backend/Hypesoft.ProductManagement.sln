@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hypesoft.Infrastructure", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hypesoft.API", "Hypesoft.API\Hypesoft.API.csproj", "{1F4C1E83-EA27-42B4-A31F-FD5A75A3780B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hypesoft.Tests", "Hypesoft.Tests\Hypesoft.Tests.csproj", "{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{1F4C1E83-EA27-42B4-A31F-FD5A75A3780B}.Release|x64.Build.0 = Release|Any CPU
 		{1F4C1E83-EA27-42B4-A31F-FD5A75A3780B}.Release|x86.ActiveCfg = Release|Any CPU
 		{1F4C1E83-EA27-42B4-A31F-FD5A75A3780B}.Release|x86.Build.0 = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|x64.Build.0 = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Debug|x86.Build.0 = Debug|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|x64.ActiveCfg = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|x64.Build.0 = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|x86.ActiveCfg = Release|Any CPU
+		{629A038E-6F32-44C9-BD4A-3DDB6E4B57C1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
