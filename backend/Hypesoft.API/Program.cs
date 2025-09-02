@@ -1,41 +1,144 @@
+using Hypesoft.Infrastructure.Data;
+using Hypesoft.Infrastructure.Repositories;
+using Hypesoft.Domain.Repositories;
+using Hypesoft.Application;
+using Serilog;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using Hypesoft.Application.Commands;
+using Hypesoft.Application.Validators;
+using FluentValidation;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore.InMemory;
+using Hypesoft.Infrastructure.Configurations;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// === SERILOG ===
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog((ctx, lc) => lc
+    .WriteTo.Console()
+    .Enrich.FromLogContext()
+    .ReadFrom.Configuration(ctx.Configuration));
+
+// === SERVICES ===
+builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3000") // URL do frontend
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
+
+builder.Services.AddEndpointsApiExplorer();
+
+// === MEDIATOR (CQRS) ===
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommand).Assembly));
+
+// === ENTITY FRAMEWORK + IN-MEMORY DATABASE (for development) ===
+builder.Services.AddDbContext<ProductContext>(options =>
+    options.UseInMemoryDatabase("HypesoftDb"));
+
+// === REPOSITÓRIOS ===
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+// === AUTOMAPPER ===
+builder.Services.AddAutoMapper(typeof(CreateProductCommand).Assembly);
+
+// === FLUENT VALIDATION ===
+// Note: FluentValidation will be configured separately if needed
+
+// === SWAGGER ===
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Hypesoft Product API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Use 'Bearer YOUR_TOKEN'",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// === AUTHENTICATION (KEYCLOAK / JWT) ===
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.Authority = builder.Configuration["Keycloak:Authority"];
+    if (builder.Environment.IsDevelopment())
+    {
+        options.RequireHttpsMetadata = false;
+    }
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(5)
+    };
+});
+
+// === HEALTH CHECKS ===
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// === MIDDLEWARES ===
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hypesoft Product API v1");
+        c.RoutePrefix = string.Empty;
+    });
 }
 
+app.UseCors("AllowFrontend"); // Habilita a política de CORS
+
+app.UseSerilogRequestLogging(); // Logs de requisição
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+// Executar seed
+using (var scope = app.Services.CreateScope())
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    try
+    {
+        await SeedService.SeedData(scope.ServiceProvider);
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Erro ao executar seed de dados");
+    }
 }
