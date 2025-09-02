@@ -1,0 +1,72 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: http://backend:5000
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      ConnectionStrings__MongoDb: mongodb://mongo:27017/hypesoftdb
+      Keycloak__Authority: http://keycloak:8080/realms/hypesoft
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - '27017:27017'
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - '8081:8081'
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+    depends_on:
+      - mongo
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ['start-dev']
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_REALM: hypesoft
+      KC_CLIENT_ID: shop-sense
+      KC_CLIENT_SECRET: your-client-secret-change-in-prod
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./keycloak-config:/opt/keycloak/data/import
+
+volumes:
+  mongo_data:
