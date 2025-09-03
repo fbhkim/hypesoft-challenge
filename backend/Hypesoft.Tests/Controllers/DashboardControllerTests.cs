@@ -1,4 +1,3 @@
-
 using Hypesoft.API;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +8,9 @@ using System.Net.Http.Json;
 using Hypesoft.Application.DTOs;
 using Xunit;
 using FluentAssertions;
+using Hypesoft.Domain.Entities;
+using System.Collections.Generic;
+using System;
 
 namespace Hypesoft.API.Tests.Controllers
 {
@@ -28,6 +30,8 @@ namespace Hypesoft.API.Tests.Controllers
 
                         services.AddSingleton(MockProductRepository().Object);
                         services.AddSingleton(MockCategoryRepository().Object);
+
+                        services.AddControllers(options => options.Filters.Clear());
                     });
                 });
         }
@@ -35,10 +39,12 @@ namespace Hypesoft.API.Tests.Controllers
         private Mock<IProductRepository> MockProductRepository()
         {
             var mock = new Mock<IProductRepository>();
-            var products = new List<Hypesoft.Domain.Entities.Product>
+            var categoryId = Guid.NewGuid();
+
+            var products = new List<Product>
             {
-                new Hypesoft.Domain.Entities.Product("Camiseta", "", 50, 8, Guid.NewGuid()) { Id = Guid.NewGuid() },
-                new Hypesoft.Domain.Entities.Product("Calça", "", 100, 15, Guid.NewGuid()) { Id = Guid.NewGuid() }
+                new Product("Camiseta", "", 50, 8, categoryId),
+                new Product("Calça", "", 100, 15, categoryId)
             };
 
             mock.Setup(r => r.GetAllAsync()).ReturnsAsync(products);
@@ -48,9 +54,9 @@ namespace Hypesoft.API.Tests.Controllers
         private Mock<ICategoryRepository> MockCategoryRepository()
         {
             var mock = new Mock<ICategoryRepository>();
-            var categories = new List<Hypesoft.Domain.Entities.Category>
+            var categories = new List<Category>
             {
-                new Hypesoft.Domain.Entities.Category("Vestuário") { Id = Guid.NewGuid() }
+                new Category("Vestuário")
             };
 
             mock.Setup(r => r.GetAllAsync()).ReturnsAsync(categories);
@@ -60,19 +66,20 @@ namespace Hypesoft.API.Tests.Controllers
         [Fact]
         public async Task Get_Retorna_Dados_Do_Dashboard()
         {
-            // Arrange
             var client = _factory.CreateClient();
-
-            // Act
             var response = await client.GetAsync("/api/dashboard");
+
+            response.EnsureSuccessStatusCode();
+
             var dashboard = await response.Content.ReadFromJsonAsync<DashboardDto>();
 
-            // Assert
-            response.EnsureSuccessStatusCode();
             dashboard.Should().NotBeNull();
-            dashboard.TotalProducts.Should().Be(2);
-            dashboard.TotalStockValue.Should().Be(50*8 + 100*15); // 400 + 1500 = 1900
-            dashboard.LowStockProducts.Should().HaveCount(1); // Camiseta com estoque 8 (<10)
+            dashboard!.TotalProducts.Should().Be(2);
+            dashboard.TotalValue.Should().Be(50 * 8 + 100 * 15);
+            dashboard.LowStockProducts.Should().Be(1);
+            dashboard.TotalCategories.Should().Be(1);
+
+            dashboard.ProductsByCategory.Should().NotBeNull();
             dashboard.ProductsByCategory.Should().HaveCount(1);
             dashboard.ProductsByCategory.ContainsKey("Vestuário").Should().BeTrue();
             dashboard.ProductsByCategory["Vestuário"].Should().Be(2);

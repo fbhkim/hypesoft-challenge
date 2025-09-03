@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using Hypesoft.Application.DTOs;
 using Xunit;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using System.Linq;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
+using System;
 
 namespace Hypesoft.API.Tests.Controllers
 {
@@ -35,6 +35,7 @@ namespace Hypesoft.API.Tests.Controllers
                     services.RemoveAll<IHostedService>();
                     var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IProductRepository));
                     if (descriptor != null) services.Remove(descriptor);
+
                     services.AddScoped(_ => MockProductRepository().Object);
                 });
             }
@@ -57,14 +58,10 @@ namespace Hypesoft.API.Tests.Controllers
         [Fact]
         public async Task Get_Retorna_Lista_De_Produtos()
         {
-            // Arrange
             var client = _factory.CreateClient();
-
-            // Act
             var response = await client.GetAsync("/api/products");
             var produtos = await response.Content.ReadFromJsonAsync<IEnumerable<ProductDto>>();
 
-            // Assert
             response.EnsureSuccessStatusCode();
             produtos.Should().NotBeNull();
             produtos.Should().HaveCount(1);
@@ -74,14 +71,10 @@ namespace Hypesoft.API.Tests.Controllers
         [Fact]
         public async Task GetById_Retorna_Produto_Existente()
         {
-            // Arrange
             var client = _factory.CreateClient();
-
-            // Act
             var response = await client.GetAsync("/api/products/" + Guid.NewGuid());
             var produto = await response.Content.ReadFromJsonAsync<ProductDto>();
 
-            // Assert
             response.EnsureSuccessStatusCode();
             produto.Should().NotBeNull();
             produto!.Name.Should().Be("Produto 1");

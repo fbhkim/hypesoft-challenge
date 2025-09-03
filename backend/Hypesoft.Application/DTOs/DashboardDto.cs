@@ -9,5 +9,6 @@ namespace Hypesoft.Application.DTOs
         public int TotalCategories { get; set; }
         public decimal TotalValue { get; set; }
         public int LowStockProducts { get; set; }
+        public Dictionary<string, int> ProductsByCategory { get; set; } = new();
     }
 }
